@@ -20,9 +20,8 @@ def report():
 
 def authorize():
     auth_data = {}
-    # add check of variables
     # need to replace v2 with v3 if possible here
-    url = os.environ['KEYSTONE_ENDPOINT'] + '/tokens'
+    url = endpoints['keystone'] + '/tokens'
     params = {
         "auth": {
             "tenantName": "admin",
@@ -53,7 +52,7 @@ def api_request(url, params, headers):
 
 def get_all_active_vms(auth_data):
     active_vms = {}
-    url = os.environ['COMPUTE_ENDPOINT'] + '/' + auth_data['tenant_id'] + '/servers/detail?all_tenants=1'
+    url = endpoints['compute'] + '/' + auth_data['tenant_id'] + '/servers/detail?all_tenants=1'
     for server in api_request(url, None, {"X-Auth-Token": auth_data['token']})['servers']:
         active_vms[server['id']] = {'name': server['name'], 'project_id': server['tenant_id']}
     return active_vms
@@ -69,9 +68,15 @@ def get_active_projects(active_vms):
 
 
 def get_resources_usage(auth_data):
-    url = os.environ['COMPUTE_ENDPOINT'] + '/' + auth_data['tenant_id'] + '/os-hypervisors/statistics'
+    url = endpoints['compute'] + '/' + auth_data['tenant_id'] + '/os-hypervisors/statistics'
     return api_request(url, None, {"X-Auth-Token": auth_data['token']})['hypervisor_statistics']
 
 
 if __name__ == '__main__':
+    endpoints = {}
+    try:
+	endpoints['keystone'] = os.environ['KEYSTONE_ENDPOINT']
+        endpoints['compute'] = os.environ['COMPUTE_ENDPOINT']
+    except:
+	raise	
     report()
