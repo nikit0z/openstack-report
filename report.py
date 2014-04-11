@@ -3,19 +3,22 @@
 import urllib2
 import os
 import json
+from netaddr import iter_iprange
 
 
 def report():
     auth_data = authorize()
     active_vms = get_all_active_vms(auth_data)
+    print('Total number of vms is: %s') % len(active_vms.keys())
     active_projects = get_active_projects(active_vms)
     print('Total number of active projects is: %s') % len(active_projects)
-    print('Total number of vms is: %s') % len(active_vms.keys())
     resources = get_resources_usage(auth_data)
     print('Total number of computes: %s') % resources['count']
     print('VCPUs used/total: %s/%s') % (resources['vcpus_used'], resources['vcpus'])
     print('RAM (Mb) used/total: %s/%s') % (resources['memory_mb_used'], resources['memory_mb'])
     print('Storage (Gb) used/total: %s/%s') % (resources['local_gb_used'], resources['local_gb'])
+    floatingips = get_floatingip_usage(auth_data)
+    print('Floating IPs used/total: %s/%s') % (floatingips['used'], floatingips['total'])
 
 
 def authorize():
@@ -72,11 +75,28 @@ def get_resources_usage(auth_data):
     return api_request(url, None, {"X-Auth-Token": auth_data['token']})['hypervisor_statistics']
 
 
+def get_floatingip_usage(auth_data):
+    floatingips = {}
+    url = endpoints['neutron'] + '/floatingips'
+    responce = api_request(url, None, {"X-Auth-Token": auth_data['token']})['floatingips']
+    floatingip_net_id = responce[0]['floating_network_id']
+    floatingips['total'] = get_floatingip_total(floatingip_net_id, auth_data)
+    floatingips['used'] = len(responce)
+    return floatingips
+
+
+def get_floatingip_total(floatingip_net_id, auth_data):
+    url = endpoints['neutron'] + '/subnets?network_id=' + floatingip_net_id
+    responce = api_request(url, None, {"X-Auth-Token": auth_data['token']})['subnets'][0]['allocation_pools'][0]
+    return len(list(iter_iprange(responce['start'], responce['end'])))
+
+
 if __name__ == '__main__':
     endpoints = {}
     try:
-	endpoints['keystone'] = os.environ['KEYSTONE_ENDPOINT']
+        endpoints['keystone'] = os.environ['KEYSTONE_ENDPOINT']
         endpoints['compute'] = os.environ['COMPUTE_ENDPOINT']
+        endpoints['neutron'] = os.environ['NEUTRON_ENDPOINT']
     except:
-	raise	
+        raise
     report()
