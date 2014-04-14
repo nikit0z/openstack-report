@@ -25,12 +25,18 @@ def authorize():
     auth_data = {}
     # need to replace v2 with v3 if possible here
     url = endpoints['keystone'] + '/tokens'
+    try:
+        admin_tenant = os.environ['OS_TENANT_NAME']
+        admin_user = os.environ['OS_USERNAME']
+        admin_pass = os.environ['OS_PASSWORD']
+    except:
+        raise
     params = {
         "auth": {
-            "tenantName": "admin",
+            "tenantName": admin_tenant,
             "passwordCredentials": {
-                "username": "admin",
-                "password": "admin"
+                "username": admin_user,
+                "password": admin_pass
             }
         }
     }
