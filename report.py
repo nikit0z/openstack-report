@@ -14,11 +14,11 @@ def report():
     print('Total number of active projects is: %s') % len(active_projects)
     resources = get_resources_usage(auth_data)
     print('Total number of computes: %s') % resources['count']
-    print('VCPUs used/total: %s/%s') % (resources['vcpus_used'], resources['vcpus'])
-    print('RAM (Mb) used/total: %s/%s') % (resources['memory_mb_used'], resources['memory_mb'])
-    print('Storage (Gb) used/total: %s/%s') % (resources['local_gb_used'], resources['local_gb'])
+    print('VCPUs used/total: %s/%s / %.2f%% free') % (resources['vcpus_used'], resources['vcpus'], percentage(resources['vcpus_used'], resources['vcpus']))
+    print('RAM (Mb) used/total: %s/%s / %.2f%% free') % (resources['memory_mb_used'], resources['memory_mb'], percentage(resources['memory_mb_used'], resources['memory_mb']))
+    print('Storage (Gb) used/total: %s/%s / %.2f%% free') % (resources['local_gb_used'], resources['local_gb'], percentage(resources['local_gb_used'], resources['local_gb']))
     floatingips = get_floatingip_usage(auth_data)
-    print('Floating IPs used/total: %s/%s') % (floatingips['used'], floatingips['total'])
+    print('Floating IPs used/total: %s/%s / %.2f%% free') % (floatingips['used'], floatingips['total'], percentage(floatingips['used'], floatingips['total']))
 
 
 def authorize():
@@ -95,6 +95,10 @@ def get_floatingip_total(floatingip_net_id, auth_data):
     url = endpoints['neutron'] + '/subnets?network_id=' + floatingip_net_id
     responce = api_request(url, None, {"X-Auth-Token": auth_data['token']})['subnets'][0]['allocation_pools'][0]
     return len(list(iter_iprange(responce['start'], responce['end'])))
+
+
+def percentage (used, total):
+    return 100*(float(total)-float(used))/float(total)
 
 
 if __name__ == '__main__':
